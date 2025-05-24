@@ -1,0 +1,76 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  name        String
+  role        Role     @default(PROFESSOR)
+  password    String
+  firstAccess Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reservations Reservation[]
+
+  @@map("users")
+}
+
+model Laboratory {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reservations Reservation[]
+
+  @@map("laboratories")
+}
+
+model TimeSlot {
+  id        String   @id @default(uuid())
+  start     String
+  end       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reservations Reservation[]
+
+  @@map("time_slots")
+}
+
+model Reservation {
+  id           String           @id @default(uuid())
+  date         String
+  status       ReservationStatus @default(ACTIVE)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  
+  professor    User             @relation(fields: [professorId], references: [id])
+  professorId  String
+  
+  laboratory   Laboratory       @relation(fields: [laboratoryId], references: [id])
+  laboratoryId String
+  
+  timeSlot     TimeSlot         @relation(fields: [timeSlotId], references: [id])
+  timeSlotId   String
+
+  @@unique([laboratoryId, timeSlotId, date])
+  @@map("reservations")
+}
+
+enum Role {
+  ADMIN
+  PROFESSOR
+}
+
+enum ReservationStatus {
+  ACTIVE
+  CANCELLED
+}
