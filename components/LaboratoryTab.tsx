@@ -25,21 +25,24 @@ export function LaboratoryTab() {
 
   useEffect(() => {
     // Carregar laboratórios do serviço
-    setLaboratories(laboratoryApi.getAll())
+    (async () => {
+      const labs = await laboratoryApi.getAll()
+      setLaboratories(labs)
+    })()
   }, [])
 
-  const addLaboratory = () => {
+  const addLaboratory = async () => {
     if (newLab.name) {
-      const laboratory = laboratoryApi.add(newLab)
+      const laboratory = await laboratoryApi.add(newLab)
       setLaboratories([...laboratories, laboratory])
       setNewLab({ name: "" })
       setShowAddLab(false)
     }
   }
 
-  const updateLaboratory = () => {
+  const updateLaboratory = async () => {
     if (editingLab && editingLab.name) {
-      const updated = laboratoryApi.update(editingLab)
+      const updated = await laboratoryApi.update(editingLab)
       setLaboratories(laboratories.map(l => l.id === updated.id ? updated : l))
       setEditingLab(null)
       setShowEditLab(false)

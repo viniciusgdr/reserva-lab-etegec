@@ -1,199 +1,127 @@
 import { User, Professor, Laboratory, TimeSlot, Reservation } from "@/types"
 
-// Dados iniciais para simulação
-const initialProfessors: Professor[] = [
-  { id: "1", name: "Prof. João Silva", email: "joao@lab.com" },
-  { id: "2", name: "Prof. Maria Santos", email: "maria@lab.com" },
-]
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
-const initialLaboratories: Laboratory[] = [
-  { id: "1", name: "Laboratório de Informática 1" },
-  { id: "2", name: "Laboratório de Química" },
-  { id: "3", name: "Laboratório de Física" },
-]
+// Função auxiliar para fazer requisições
+const fetchAPI = async <T>(
+  endpoint: string, 
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any
+): Promise<T> => {
+  const options: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  };
 
-const initialTimeSlots: TimeSlot[] = [
-  { id: "1", start: "08:00", end: "10:00" },
-  { id: "2", start: "10:00", end: "12:00" },
-  { id: "3", start: "14:00", end: "16:00" },
-  { id: "4", start: "16:00", end: "18:00" },
-  { id: "5", start: "19:00", end: "21:00" },
-  { id: "6", start: "21:00", end: "23:00" },
-]
-
-// Storage keys
-const PROFESSORS_KEY = 'professors'
-const LABORATORIES_KEY = 'laboratories'
-const TIME_SLOTS_KEY = 'timeSlots'
-const RESERVATIONS_KEY = 'reservations'
-const USER_KEY = 'user'
-
-// Funções auxiliares para armazenamento local
-const getStoredData = <T>(key: string, initialData: T[]): T[] => {
-  if (typeof window === 'undefined') return initialData
-  
-  const storedData = localStorage.getItem(key)
-  return storedData ? JSON.parse(storedData) : initialData
-}
-
-const setStoredData = <T>(key: string, data: T[]): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(key, JSON.stringify(data))
+  if (data) {
+    options.body = JSON.stringify(data);
   }
-}
+
+  const response = await fetch(`${API_URL}${endpoint}`, options);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.message || `Erro na requisição: ${response.status}`);
+  }
+
+  if (response.status !== 204) {
+    return response.json();
+  }
+
+  return {} as T;
+};
 
 // API de Professores
 export const professorApi = {
-  getAll: (): Professor[] => {
-    return getStoredData<Professor>(PROFESSORS_KEY, initialProfessors)
+  getAll: async (): Promise<Professor[]> => {
+    return fetchAPI<Professor[]>('/professors');
   },
   
-  add: (professor: Omit<Professor, "id">): Professor => {
-    const professors = professorApi.getAll()
-    const newProfessor = {
-      id: Date.now().toString(),
-      ...professor
-    }
-    const updatedProfessors = [...professors, newProfessor]
-    setStoredData(PROFESSORS_KEY, updatedProfessors)
-    return newProfessor
+  add: async (professor: Omit<Professor, "id">): Promise<Professor> => {
+    return fetchAPI<Professor>('/professors', 'POST', professor);
   },
   
-  update: (professor: Professor): Professor => {
-    const professors = professorApi.getAll()
-    const updatedProfessors = professors.map(p => 
-      p.id === professor.id ? professor : p
-    )
-    setStoredData(PROFESSORS_KEY, updatedProfessors)
-    return professor
+  update: async (professor: Professor): Promise<Professor> => {
+    return fetchAPI<Professor>(`/professors/${professor.id}`, 'PUT', professor);
   },
   
-  delete: (id: string): void => {
-    const professors = professorApi.getAll()
-    const updatedProfessors = professors.filter(p => p.id !== id)
-    setStoredData(PROFESSORS_KEY, updatedProfessors)
+  delete: async (id: string): Promise<void> => {
+    return fetchAPI<void>(`/professors/${id}`, 'DELETE');
   }
-}
+};
 
 // API de Laboratórios
 export const laboratoryApi = {
-  getAll: (): Laboratory[] => {
-    return getStoredData<Laboratory>(LABORATORIES_KEY, initialLaboratories)
+  getAll: async (): Promise<Laboratory[]> => {
+    return fetchAPI<Laboratory[]>('/laboratories');
   },
   
-  add: (laboratory: Omit<Laboratory, "id">): Laboratory => {
-    const laboratories = laboratoryApi.getAll()
-    const newLaboratory = {
-      id: Date.now().toString(),
-      ...laboratory
-    }
-    const updatedLaboratories = [...laboratories, newLaboratory]
-    setStoredData(LABORATORIES_KEY, updatedLaboratories)
-    return newLaboratory
+  add: async (laboratory: Omit<Laboratory, "id">): Promise<Laboratory> => {
+    return fetchAPI<Laboratory>('/laboratories', 'POST', laboratory);
   },
   
-  update: (laboratory: Laboratory): Laboratory => {
-    const laboratories = laboratoryApi.getAll()
-    const updatedLaboratories = laboratories.map(l => 
-      l.id === laboratory.id ? laboratory : l
-    )
-    setStoredData(LABORATORIES_KEY, updatedLaboratories)
-    return laboratory
+  update: async (laboratory: Laboratory): Promise<Laboratory> => {
+    return fetchAPI<Laboratory>(`/laboratories/${laboratory.id}`, 'PUT', laboratory);
   },
   
-  delete: (id: string): void => {
-    const laboratories = laboratoryApi.getAll()
-    const updatedLaboratories = laboratories.filter(l => l.id !== id)
-    setStoredData(LABORATORIES_KEY, updatedLaboratories)
+  delete: async (id: string): Promise<void> => {
+    return fetchAPI<void>(`/laboratories/${id}`, 'DELETE');
   }
-}
+};
 
 // API de Horários
 export const timeSlotApi = {
-  getAll: (): TimeSlot[] => {
-    return getStoredData<TimeSlot>(TIME_SLOTS_KEY, initialTimeSlots)
+  getAll: async (): Promise<TimeSlot[]> => {
+    return fetchAPI<TimeSlot[]>('/timeSlots');
   },
   
-  add: (timeSlot: Omit<TimeSlot, "id">): TimeSlot => {
-    const timeSlots = timeSlotApi.getAll()
-    const newTimeSlot = {
-      id: Date.now().toString(),
-      ...timeSlot
-    }
-    const updatedTimeSlots = [...timeSlots, newTimeSlot]
-    setStoredData(TIME_SLOTS_KEY, updatedTimeSlots)
-    return newTimeSlot
+  add: async (timeSlot: Omit<TimeSlot, "id">): Promise<TimeSlot> => {
+    return fetchAPI<TimeSlot>('/timeSlots', 'POST', timeSlot);
   },
   
-  update: (timeSlot: TimeSlot): TimeSlot => {
-    const timeSlots = timeSlotApi.getAll()
-    const updatedTimeSlots = timeSlots.map(t => 
-      t.id === timeSlot.id ? timeSlot : t
-    )
-    setStoredData(TIME_SLOTS_KEY, updatedTimeSlots)
-    return timeSlot
+  update: async (timeSlot: TimeSlot): Promise<TimeSlot> => {
+    return fetchAPI<TimeSlot>(`/timeSlots/${timeSlot.id}`, 'PUT', timeSlot);
   },
   
-  delete: (id: string): void => {
-    const timeSlots = timeSlotApi.getAll()
-    const updatedTimeSlots = timeSlots.filter(t => t.id !== id)
-    setStoredData(TIME_SLOTS_KEY, updatedTimeSlots)
+  delete: async (id: string): Promise<void> => {
+    return fetchAPI<void>(`/timeSlots/${id}`, 'DELETE');
   }
-}
+};
 
 // API de Reservas
 export const reservationApi = {
-  getAll: (): Reservation[] => {
-    return getStoredData<Reservation>(RESERVATIONS_KEY, [])
+  getAll: async (): Promise<Reservation[]> => {
+    return fetchAPI<Reservation[]>('/reservations');
   },
   
-  add: (reservation: Omit<Reservation, "id" | "createdAt">): Reservation => {
-    const reservations = reservationApi.getAll()
-    const newReservation = {
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      ...reservation
-    }
-    const updatedReservations = [...reservations, newReservation]
-    setStoredData(RESERVATIONS_KEY, updatedReservations)
-    return newReservation
+  add: async (reservation: Omit<Reservation, "id" | "createdAt">): Promise<Reservation> => {
+    return fetchAPI<Reservation>('/reservations', 'POST', reservation);
   },
   
-  update: (reservationId: string, status: "active" | "cancelled"): Reservation | null => {
-    const reservations = reservationApi.getAll()
-    let updatedReservation: Reservation | null = null
-    
-    const updatedReservations = reservations.map(r => {
-      if (r.id === reservationId) {
-        updatedReservation = { ...r, status }
-        return updatedReservation
-      }
-      return r
-    })
-    
-    setStoredData(RESERVATIONS_KEY, updatedReservations)
-    return updatedReservation
+  update: async (reservationId: string, status: "active" | "cancelled"): Promise<Reservation> => {
+    return fetchAPI<Reservation>(`/reservations/${reservationId}`, 'PUT', { status });
   }
-}
+};
 
 // API de Usuário
 export const userApi = {
-  getCurrentUser: (): User | null => {
-    if (typeof window === 'undefined') return null
-    
-    const userData = localStorage.getItem(USER_KEY)
-    return userData ? JSON.parse(userData) : null
-  },
-  
-  login: (user: User): void => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(USER_KEY, JSON.stringify(user))
+  getCurrentUser: async (): Promise<User | null> => {
+    try {
+      return await fetchAPI<User>('/users/me');
+    } catch {
+      return null;
     }
   },
   
-  logout: (): void => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(USER_KEY)
-    }
+  login: async (credentials: { email: string; password: string }): Promise<User> => {
+    return fetchAPI<User>('/auth/login', 'POST', credentials);
+  },
+  
+  logout: async (): Promise<void> => {
+    return fetchAPI<void>('/auth/logout', 'POST');
   }
-}
+};

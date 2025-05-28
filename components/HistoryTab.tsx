@@ -18,11 +18,18 @@ export function HistoryTab({ userId, isAdmin }: HistoryTabProps) {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
 
   useEffect(() => {
-    // Carregar dados
-    setReservations(reservationApi.getAll())
-    setProfessors(professorApi.getAll())
-    setLaboratories(laboratoryApi.getAll())
-    setTimeSlots(timeSlotApi.getAll())
+    (async () => {
+      const [reservationsData, professorsData, laboratoriesData, timeSlotsData] = await Promise.all([
+        reservationApi.getAll(),
+        professorApi.getAll(),
+        laboratoryApi.getAll(),
+        timeSlotApi.getAll()
+      ])
+      setReservations(reservationsData)
+      setProfessors(professorsData)
+      setLaboratories(laboratoriesData)
+      setTimeSlots(timeSlotsData)
+    })()
   }, [])
 
   // Filtrar reservas para mostrar apenas as do usuário (se não for admin)
@@ -43,7 +50,7 @@ export function HistoryTab({ userId, isAdmin }: HistoryTabProps) {
       <CardContent>
         <div className="space-y-4">
           {filteredReservations.map((reservation) => {
-            const lab = laboratories.find((l) => l.id === reservation.labId)
+            const lab = laboratories.find((l) => l.id === reservation.laboratoryId)
             const timeSlot = timeSlots.find((t) => t.id === reservation.timeSlotId)
             const professor = professors.find((p) => p.id === reservation.professorId)
 
@@ -60,8 +67,8 @@ export function HistoryTab({ userId, isAdmin }: HistoryTabProps) {
                     {new Date(reservation.createdAt).toLocaleString("pt-BR")}
                   </p>
                 </div>
-                <Badge variant={reservation.status === "active" ? "default" : "secondary"}>
-                  {reservation.status === "active" ? "Ativa" : "Cancelada"}
+                <Badge variant={reservation.status === "ACTIVE" ? "default" : "secondary"}>
+                  {reservation.status === "ACTIVE" ? "Ativa" : "Cancelada"}
                 </Badge>
               </div>
             )

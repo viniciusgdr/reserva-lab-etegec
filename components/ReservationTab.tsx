@@ -35,25 +35,27 @@ export function ReservationTab({ userId, isAdmin }: ReservationTabProps) {
   const [selectedLabId, setSelectedLabId] = useState<string>("")
   const [showReservationModal, setShowReservationModal] = useState(false)
   const [selectedReservation, setSelectedReservation] = useState<ReservationDetails | null>(null)
-  
+
   const { makeReservation, cancelReservation, getReservationStatus } = useReservations(userId)
-  
+
   useEffect(() => {
     // Carregar dados
-    const labs = laboratoryApi.getAll()
-    setLaboratories(labs)
-    setTimeSlots(timeSlotApi.getAll())
-    
-    // Definir laboratório padrão selecionado
-    if (labs.length > 0) {
-      setSelectedLabId(labs[0].id)
-    }
+    (async () => {
+      const labs = await laboratoryApi.getAll()
+      setLaboratories(labs)
+      setTimeSlots(await timeSlotApi.getAll())
+
+      // Definir laboratório padrão selecionado
+      if (labs.length > 0) {
+        setSelectedLabId(labs[0].id)
+      }
+    })()
   }, [])
-  
+
   // Filtrar laboratório selecionado
   const selectedLab = laboratories.find(lab => lab.id === selectedLabId) || laboratories[0]
   const weekDates = getWeekDates()
-  
+
   const openReservationModal = (labId: string, timeSlotId: string, date: string) => {
     const lab = laboratories.find((l) => l.id === labId)
     const timeSlot = timeSlots.find((t) => t.id === timeSlotId)
@@ -82,7 +84,7 @@ export function ReservationTab({ userId, isAdmin }: ReservationTabProps) {
       setSelectedReservation(null)
     }
   }
-  
+
   return (
     <>
       <Card className="border-none shadow-md overflow-hidden">
@@ -141,11 +143,10 @@ export function ReservationTab({ userId, isAdmin }: ReservationTabProps) {
                       Horário
                     </th>
                     {weekDates.map((date) => (
-                      <th 
-                        key={date.toISOString()} 
-                        className={`border border-gray-200 dark:border-gray-700 p-3 text-center font-medium min-w-[120px] ${
-                          date.getDay() === 0 || date.getDay() === 6 ? 'bg-gray-100 dark:bg-gray-700' : ''
-                        }`}
+                      <th
+                        key={date.toISOString()}
+                        className={`border border-gray-200 dark:border-gray-700 p-3 text-center font-medium min-w-[120px] ${date.getDay() === 0 || date.getDay() === 6 ? 'bg-gray-100 dark:bg-gray-700' : ''
+                          }`}
                       >
                         <div className="text-gray-700 dark:text-gray-300">
                           {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][date.getDay()]}
@@ -166,21 +167,19 @@ export function ReservationTab({ userId, isAdmin }: ReservationTabProps) {
                       {weekDates.map((date) => {
                         const dateStr = date.toISOString().split("T")[0]
                         const { status, reservation } = getReservationStatus(selectedLab.id, timeSlot.id, dateStr)
-
                         return (
                           <td key={dateStr} className="border border-gray-200 dark:border-gray-700 p-2">
                             <Button
                               variant="outline"
                               size="sm"
-                              className={`w-full h-12 text-xs font-medium transition-all ${
-                                status === "free"
+                              className={`w-full h-12 text-xs font-medium transition-all ${status === "free"
                                   ? "bg-green-50 hover:bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-300 dark:border-green-800"
                                   : status === "mine"
                                     ? "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800"
                                     : status === "recent"
                                       ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800 cursor-not-allowed"
                                       : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 cursor-not-allowed"
-                              }`}
+                                }`}
                               onClick={() => {
                                 if (status === "free" && !isAdmin) {
                                   openReservationModal(selectedLab.id, timeSlot.id, dateStr)
@@ -212,7 +211,7 @@ export function ReservationTab({ userId, isAdmin }: ReservationTabProps) {
           )}
         </CardContent>
       </Card>
-      
+
       {/* Modal de Confirmação de Reserva */}
       <Dialog open={showReservationModal} onOpenChange={setShowReservationModal}>
         <DialogContent className="sm:max-w-md rounded-xl shadow-xl border-blue-100 dark:border-blue-900">
@@ -236,14 +235,14 @@ export function ReservationTab({ userId, isAdmin }: ReservationTabProps) {
                 </p>
               </div>
               <div className="flex justify-end space-x-2 pt-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowReservationModal(false)}
                   className="rounded-full border-gray-300 hover:bg-red-50 hover:text-red-600 dark:border-gray-600 dark:hover:bg-red-900/30 dark:hover:text-red-300"
                 >
                   Cancelar
                 </Button>
-                <Button 
+                <Button
                   onClick={confirmReservation}
                   className="rounded-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
                 >

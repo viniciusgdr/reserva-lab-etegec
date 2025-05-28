@@ -10,14 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
-
-interface User {
-  id: string
-  email: string
-  role: "admin" | "professor"
-  name: string
-  firstAccess: boolean
-}
+import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -27,6 +20,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
@@ -37,33 +31,36 @@ export default function LoginPage() {
     setIsLoading(true)
     setError("")
 
-    // Simular autenticação
-    setTimeout(() => {
-      if (email === "admin@lab.com" && password === "admin123") {
-        const user: User = {
-          id: "1",
-          email: "admin@lab.com",
-          role: "admin",
-          name: "Administrador",
-          firstAccess: false,
-        }
-        localStorage.setItem("user", JSON.stringify(user))
-        window.location.href = "/dashboard"
-      } else if (email === "professor@lab.com" && password === "12345678") {
-        const user: User = {
-          id: "2",
-          email: "professor@lab.com",
-          role: "professor",
-          name: "Professor Teste",
-          firstAccess: true,
-        }
-        localStorage.setItem("user", JSON.stringify(user))
-        window.location.href = "/change-password"
-      } else {
-        setError("Email ou senha incorretos")
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Erro ao fazer login');
+        setIsLoading(false);
+        return;
       }
-      setIsLoading(false)
-    }, 1000)
+
+      // Salvar dados do usuário na sessão do navegador (não mais localStorage)
+      sessionStorage.setItem('user', JSON.stringify(data));
+
+      // Redirecionar com base no primeiro acesso
+      if (data.firstAccess) {
+        router.push('/change-password');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (err) {
+      console.error('Erro de login:', err);
+      setError('Ocorreu um erro ao tentar fazer login. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   if (!mounted) return null
@@ -138,18 +135,6 @@ export default function LoginPage() {
                 {isLoading ? "Entrando..." : "Entrar"}
               </Button>
             </form>
-
-            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <p className="text-sm font-medium mb-2">Credenciais de teste:</p>
-              <div className="text-xs space-y-1">
-                <p>
-                  <strong>Admin:</strong> admin@lab.com / admin123
-                </p>
-                <p>
-                  <strong>Professor:</strong> professor@lab.com / 12345678
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

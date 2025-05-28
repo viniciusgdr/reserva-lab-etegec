@@ -17,11 +17,12 @@ import { TimeSlotTab } from '@/components/TimeSlotTab'
 import { ProfessorTab } from '@/components/ProfessorTab'
 import { LaboratoryTab } from '@/components/LaboratoryTab'
 import { ReservationTab } from '@/components/ReservationTab'
+import { useRouter } from 'next/navigation'
 
 interface User {
   id: string
   email: string
-  role: "admin" | "professor"
+  role: "ADMIN" | "PROFESSOR"
   name: string
   firstAccess: boolean
 }
@@ -32,19 +33,22 @@ interface Reservation {
   timeSlotId: string
   professorId: string
   date: string
-  status: "active" | "cancelled"
+  status: "ACTIVE" | "CANCELLED"
   createdAt: string
 }
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
-  const [reservations, setReservations] = useState<Reservation[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setReservations] = useState<Reservation[]>([])
 
   // Estados para modais
   const [showReservationModal, setShowReservationModal] = useState(false)
-  
+
   const [selectedReservation, setSelectedReservation] = useState<{
     labId: string
     timeSlotId: string
@@ -56,41 +60,78 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setMounted(true)
-    const userData = localStorage.getItem("user")
-    if (!userData) {
-      window.location.href = "/"
-      return
-    }
-    setUser(JSON.parse(userData))
-  }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem("user")
-    window.location.href = "/"
-  }
+    // Buscar dados do usuário da API
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/users/me');
 
+        if (!response.ok) {
+          // Se não estiver autenticado, redirecionar para login
+          router.push('/');
+          return;
+        }
 
-
-  // Nova função para editar laboratório
-
-
-  const makeReservation = (labId: string, timeSlotId: string, date: string) => {
-    if (user) {
-      const reservation: Reservation = {
-        id: Date.now().toString(),
-        labId,
-        timeSlotId,
-        professorId: user.id,
-        date,
-        status: "active",
-        createdAt: new Date().toISOString(),
+        const userData = await response.json();
+        setUser(userData);
+      } catch (error) {
+        console.error('Erro ao buscar dados do usuário:', error);
+        router.push('/');
+      } finally {
+        setLoading(false);
       }
-      setReservations([...reservations, reservation])
+    };
+
+    fetchUser();
+  }, [router]);
+
+  const handleLogout = async () => {
+    try {
+      // Chamar a API de logout
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Redirecionar para a página de login
+      router.push('/');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
     }
   }
 
+  const makeReservation = async (labId: string, timeSlotId: string, date: string) => {
+    if (user) {
+      try {
+        const response = await fetch('/api/reservations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            laboratoryId: labId,
+            timeSlotId: timeSlotId,
+            date: date,
+          }),
+        });
 
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erro ao criar reserva');
+        }
 
+        const newReservation = await response.json();
+        setReservations(prev => [...prev, newReservation]);
+
+        // Poderia adicionar uma notificação de sucesso aqui
+      } catch (error) {
+        console.error('Erro ao fazer reserva:', error);
+        // Poderia adicionar uma notificação de erro aqui
+      }
+    }
+  }
 
   const confirmReservation = () => {
     if (selectedReservation && user) {
@@ -100,28 +141,30 @@ export default function DashboardPage() {
     }
   }
 
-  if (!mounted || !user) return null
-
-  
-  // Filtrar laboratório selecionado
+  if (!mounted || loading) return null
+  if (!user) return null
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
       <Header
         userName={user.name}
-        userRole={user.role}
+        userRole={user.role.toLowerCase() as "admin" | "professor"}
         onLogout={handleLogout}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="reservations" className="space-y-6">
           {/* Tabs - Design melhorado */}
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800">
+          <TabsList className={
+            user.role === "ADMIN" ?
+              "grid w-full grid-cols-2 lg:grid-cols-5 gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800"
+              : "grid w-full grid-cols-1 lg:grid-cols-2 gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800"
+          }>
             <TabsTrigger value="reservations" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all">
               <Calendar className="h-4 w-4 mr-2" />
               Reservas
             </TabsTrigger>
-            {user.role === "admin" && (
+            {user.role === "ADMIN" && (
               <>
                 <TabsTrigger value="professors" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all">
                   <Users className="h-4 w-4 mr-2" />
@@ -145,44 +188,42 @@ export default function DashboardPage() {
 
           {/* Aba de Reservas - Design melhorado */}
           <TabsContent value="reservations" className="space-y-6 animate-in fade-in-50 duration-300">
-            <ReservationTab 
+            <ReservationTab
               userId={user.id}
-              isAdmin={user.role === "admin"}
+              isAdmin={user.role === "ADMIN"}
             />
           </TabsContent>
 
           {/* Aba de Professores (Admin) */}
-          {user.role === "admin" && (
+          {user.role === "ADMIN" && (
             <TabsContent value="professors" className="space-y-6">
-              <ProfessorTab
-              />
+              <ProfessorTab />
             </TabsContent>
           )}
 
           {/* Aba de Laboratórios (Admin) */}
-          {user.role === "admin" && (
+          {user.role === "ADMIN" && (
             <TabsContent value="laboratories" className="space-y-6">
               <LaboratoryTab />
             </TabsContent>
           )}
 
           {/* Aba de Horários (Admin) */}
-          {user.role === "admin" && (
+          {user.role === "ADMIN" && (
             <TabsContent value="schedules" className="space-y-6">
-              <TimeSlotTab
-              />
+              <TimeSlotTab />
             </TabsContent>
           )}
 
           <TabsContent value="history" className="space-y-6">
             <HistoryTab
               userId={user.id}
-              isAdmin={user.role === "admin"}
+              isAdmin={user.role === "ADMIN"}
             />
           </TabsContent>
         </Tabs>
       </div>
-      
+
       {/* Modal de Confirmação de Reserva - Design melhorado */}
       <Dialog open={showReservationModal} onOpenChange={setShowReservationModal}>
         <DialogContent className="sm:max-w-md rounded-xl shadow-xl border-blue-100 dark:border-blue-900">
@@ -206,14 +247,14 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="flex justify-end space-x-2 pt-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowReservationModal(false)}
                   className="rounded-full border-gray-300 hover:bg-red-50 hover:text-red-600 dark:border-gray-600 dark:hover:bg-red-900/30 dark:hover:text-red-300"
                 >
                   Cancelar
                 </Button>
-                <Button 
+                <Button
                   onClick={confirmReservation}
                   className="rounded-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
                 >

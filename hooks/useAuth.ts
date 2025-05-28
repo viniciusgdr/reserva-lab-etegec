@@ -7,13 +7,16 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const storedUser = userApi.getCurrentUser()
-    setUser(storedUser)
-    setLoading(false)
+    (async () => {
+      const storedUser = await userApi.getCurrentUser()
+      setUser(storedUser)
+      setLoading(false)
+    })()
   }, [])
 
   const login = (userData: User) => {
-    userApi.login(userData)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    userApi.login(userData as any)
     setUser(userData)
   }
 

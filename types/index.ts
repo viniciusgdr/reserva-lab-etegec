@@ -25,11 +25,11 @@ export interface TimeSlot {
 
 export interface Reservation {
   id: string
-  labId: string
+  laboratoryId: string
   timeSlotId: string
   professorId: string
   date: string
-  status: "active" | "cancelled"
+  status: "ACTIVE" | "CANCELLED"
   createdAt: string
 }
 

@@ -8,10 +8,10 @@ async function main() {
   // Criar usuário admin padrão
   const adminPassword = await bcrypt.hash('admin123', 10)
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@etegec.com' },
+    where: { email: 'admin@lab.com' },
     update: {},
     create: {
-      email: 'admin@etegec.com',
+      email: 'admin@lab.com',
       name: 'Administrador',
       role: Role.ADMIN,
       password: adminPassword,
@@ -24,10 +24,10 @@ async function main() {
   const professorPassword = await bcrypt.hash('12345678', 10)
   
   const joao = await prisma.user.upsert({
-    where: { email: 'joao@etegec.com' },
+    where: { email: 'professor@lab.com' },
     update: {},
     create: {
-      email: 'joao@etegec.com',
+      email: 'professor@lab.com',
       name: 'Prof. João Silva',
       role: Role.PROFESSOR,
       password: professorPassword,

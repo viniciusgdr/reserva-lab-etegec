@@ -24,31 +24,33 @@ export function TimeSlotTab() {
   const [editingTimeSlot, setEditingTimeSlot] = useState<TimeSlot | null>(null)
 
   useEffect(() => {
-    // Carregar horários do serviço
-    setTimeSlots(timeSlotApi.getAll())
+    (async () => {
+      const slots = await timeSlotApi.getAll()
+      setTimeSlots(slots)
+    })()
   }, [])
 
-  const addTimeSlot = () => {
+  const addTimeSlot = async () => {
     if (newTimeSlot.start && newTimeSlot.end) {
-      const timeSlot = timeSlotApi.add(newTimeSlot)
+      const timeSlot = await timeSlotApi.add(newTimeSlot)
       setTimeSlots([...timeSlots, timeSlot])
       setNewTimeSlot({ start: "", end: "" })
       setShowAddTimeSlot(false)
     }
   }
 
-  const updateTimeSlot = () => {
+  const updateTimeSlot = async () => {
     if (editingTimeSlot && editingTimeSlot.start && editingTimeSlot.end) {
-      const updated = timeSlotApi.update(editingTimeSlot)
+      const updated = await timeSlotApi.update(editingTimeSlot)
       setTimeSlots(timeSlots.map(t => t.id === updated.id ? updated : t))
       setEditingTimeSlot(null)
       setShowEditTimeSlot(false)
     }
   }
 
-  const deleteTimeSlot = (id: string) => {
+  const deleteTimeSlot = async (id: string) => {
     if (confirm(`Tem certeza que deseja excluir este horário?`)) {
-      timeSlotApi.delete(id)
+      await timeSlotApi.delete(id)
       setTimeSlots(timeSlots.filter(t => t.id !== id))
     }
   }

@@ -26,21 +26,23 @@ export function ProfessorTab() {
 
   useEffect(() => {
     // Carregar professores do serviço
-    setProfessors(professorApi.getAll())
+    (async () => {
+      setProfessors(await professorApi.getAll())
+    })()
   }, [])
 
-  const addProfessor = () => {
+  const addProfessor = async () => {
     if (newProfessor.name && newProfessor.email) {
-      const professor = professorApi.add(newProfessor)
+      const professor = await professorApi.add(newProfessor)
       setProfessors([...professors, professor])
       setNewProfessor({ name: "", email: "" })
       setShowAddProfessor(false)
     }
   }
 
-  const updateProfessor = () => {
+  const updateProfessor = async () => {
     if (editingProfessor && editingProfessor.name && editingProfessor.email) {
-      const updated = professorApi.update(editingProfessor)
+      const updated = await professorApi.update(editingProfessor)
       setProfessors(professors.map(p => p.id === updated.id ? updated : p))
       setEditingProfessor(null)
       setShowEditProfessor(false)
