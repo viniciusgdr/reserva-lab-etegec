@@ -47,9 +47,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Acesso negado' }, { status: 403 });
     }
     
-    const { name, email, password } = await request.json();
+    const { name, email } = await request.json();
     
-    if (!name || !email || !password) {
+    if (!name || !email) {
       return NextResponse.json({ message: 'Dados incompletos' }, { status: 400 });
     }
     
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Criar o novo professor
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash('12345678', 12);
     
     const newProfessor = await prisma.user.create({
       data: {

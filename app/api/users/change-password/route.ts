@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Hash da nova senha
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
     
     // Atualizar senha e definir firstAccess como false
     await prisma.user.update({

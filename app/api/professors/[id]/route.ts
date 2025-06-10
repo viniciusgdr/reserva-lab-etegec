@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getSession } from '@/lib/auth';
-import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -74,7 +73,7 @@ export async function PUT(
       return NextResponse.json({ message: 'Acesso negado' }, { status: 403 });
     }
     
-    const { name, email, password } = await request.json();
+    const { name, email } = await request.json();
     
     // Verificar se o professor existe
     const professor = await prisma.user.findUnique({
@@ -90,7 +89,6 @@ export async function PUT(
     
     if (name) updateData.name = name;
     if (email) updateData.email = email;
-    if (password) updateData.password = await bcrypt.hash(password, 10);
     
     // Atualizar o professor
     const updatedProfessor = await prisma.user.update({
